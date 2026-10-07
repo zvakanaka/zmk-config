@@ -1,0 +1,183 @@
+#include <behaviors.dtsi>
+#include <dt-bindings/zmk/bt.h>
+#include <dt-bindings/zmk/outputs.h>
+#include <dt-bindings/zmk/keys.h>
+#include <dt-bindings/zmk/pointing.h>
+
+// Ported from the Vial keymap in zvakanaka/vial-qmk (keyboards/crkbd/keymaps/vial).
+
+// Key positions (3x5 + 3 thumbs):
+//  0  1  2  3  4     5  6  7  8  9
+// 10 11 12 13 14    15 16 17 18 19
+// 20 21 22 23 24    25 26 27 28 29
+//       30 31 32    33 34 35
+
+#define BASE 0
+#define NUM 1
+#define NAV 2
+#define SYS 3
+
+// All hold-taps use zmk,behavior-hold-tap-follow (src/behaviors/behavior_hold_tap_follow.c), a copy of
+// ZMK's hold-tap with hold-follow-key-positions. Two hold-tap implementations can't coexist, so the stock
+// &lt is switched over and the unused stock &mt is disabled; that keeps ZMK's own copy out of the build.
+&mt {
+    status = "disabled";
+};
+
+// Match QMK: same tapping term, and tap-then-hold repeats the tap key (e.g. Backspace) instead of switching layers.
+&lt {
+    compatible = "zmk,behavior-hold-tap-follow";
+    tapping-term-ms = <180>;
+    quick-tap-ms = <180>;
+};
+
+/ {
+    chosen {
+        zmk,physical-layout = &foostan_corne_5col_layout;
+    };
+
+    behaviors {
+        // Mod-taps for the thumbs, Q and the Num layer shifts. Tap-preferred like QMK's default mod-tap:
+        // the hold only fires after the tapping term, so fast typing never triggers a modifier.
+        ht: ht {
+            compatible = "zmk,behavior-hold-tap-follow";
+            bindings = <&kp>, <&kp>;
+
+            #binding-cells = <2>;
+            tapping-term-ms = <180>;
+            quick-tap-ms = <180>;
+            flavor = "tap-preferred";
+        };
+
+        // Space/Gui: like ht, but pressed within 150 ms of typing a key it is always Space, so a
+        // fast "<space>t" never becomes Gui+T. Not on the Ctrl/Alt mod-taps, which
+        // are often wanted straight after typing (Ctrl+Backspace).
+        ht_space: ht_space {
+            compatible = "zmk,behavior-hold-tap-follow";
+            bindings = <&kp>, <&kp>;
+
+            #binding-cells = <2>;
+            tapping-term-ms = <180>;
+            quick-tap-ms = <180>;
+            require-prior-idle-ms = <150>;
+            flavor = "tap-preferred";
+        };
+
+        // Shift on A and ': like ht, but pressed within 125 ms of typing a letter it is always
+        // the letter, so mid-word rolls ("reassure", "hearing") never shift. To capitalize, pause
+        // briefly before holding Shift (it works with either hand, including same-hand letters).
+        // ' followed by A is always Shift+A, however fast and whichever is released first, so a
+        // quick ' + A chord is "A" rather than "'a" (position 10 = A; A itself is unaffected).
+        hs: hs {
+            compatible = "zmk,behavior-hold-tap-follow";
+            bindings = <&kp>, <&kp>;
+
+            #binding-cells = <2>;
+            tapping-term-ms = <180>;
+            quick-tap-ms = <180>;
+            require-prior-idle-ms = <125>;
+            flavor = "tap-preferred";
+            hold-follow-key-positions = <10>;
+        };
+
+        // Shift on Z and /, the punctuation shifts: often wanted right after a letter ("what?"),
+        // so no idle check. Balanced: tapping another key while Z or / is down is Shift+key even
+        // if both are released inside 180 ms. Z followed by / is always Shift+/, however fast and
+        // whichever is released first, so a quick Z + / chord is "?" rather than "z/" (position 29 = /;
+        // / itself is unaffected). Other rolls (Z released before the next key) are still letters.
+        hsp: hsp {
+            compatible = "zmk,behavior-hold-tap-follow";
+            bindings = <&kp>, <&kp>;
+
+            #binding-cells = <2>;
+            tapping-term-ms = <180>;
+            quick-tap-ms = <180>;
+            flavor = "balanced";
+            hold-follow-key-positions = <29>;
+        };
+
+        // Backspace/Nav thumb (custom behavior in src/behaviors/):
+        // tap for Backspace; hold for Nav (keys pressed in the first 180 ms wait, like QMK);
+        // hold alone for 600 ms and Backspace repeats at 40/s, matching sway's repeat_rate.
+        // While Shift, Gui or a letter is held it's only Nav, never Backspace (Ctrl/Alt+Backspace still work).
+        ltr: layer_tap_repeat {
+            compatible = "zmk,behavior-layer-tap-repeat";
+            #binding-cells = <2>;
+            tapping-term-ms = <180>;
+            repeat-term-ms = <600>;
+            repeat-interval-ms = <25>;
+            quick-tap-ms = <180>;
+        };
+    };
+
+    combos {
+        compatible = "zmk,combos";
+
+        // Press Enter + Backspace together (the two outer right thumbs) and hold for the System layer.
+        // Holding Enter first and then tapping Backspace still gives Delete, because the combo needs both within 50 ms.
+        system {
+            timeout-ms = <50>;
+            key-positions = <34 35>;
+            bindings = <&mo SYS>;
+        };
+    };
+
+    keymap {
+        compatible = "zmk,keymap";
+
+        default_layer {
+            display-name = "Base";
+            // |  Q/Ct |  W  |  E  |  R  |  T  |   |  Y  |  U   |  I  |  O  |  P   |
+            // |  A/Sh |  S  |  D  |  F  |  G  |   |  H  |  J   |  K  |  L  | '/Sh |
+            // |  Z/Sh |  X  |  C  |  V  |  B  |   |  N  |  M   |  ,  |  .  | //Sh |
+            //               | ESC/Al | SPC/Gu | TAB/Ct |   | PSCR | ENT/Num | BSP/Nav |
+            bindings = <
+&ht LCTRL Q  &kp W  &kp E         &kp R           &kp T                &kp Y      &kp U          &kp I         &kp O    &kp P
+&hs LSHFT A  &kp S  &kp D         &kp F           &kp G                &kp H      &kp J          &kp K         &kp L    &hs RSHFT SQT
+&hsp LSHFT Z  &kp X  &kp C         &kp V           &kp B                &kp N      &kp M          &kp COMMA     &kp DOT  &hsp RSHFT SLASH
+                    &ht LALT ESC  &ht_space LGUI SPACE  &ht LCTRL TAB        &kp PSCRN  &lt NUM ENTER  &ltr NAV BSPC
+            >;
+        };
+
+        num {
+            display-name = "Num";
+            // |   1   |  2  |  3  |  4  |  5  |   |  6  |  7  |  8  |  9  |   0   |
+            // | F1/Sh | F2  | F3  | F4  | F5  |   | F6  |  -  |  =  |  `  |  ;/Sh |
+            // | F7/Sh | F8  | F9  | F10 | F11 |   | F12 |     |  [  |  ]  | \/Sh  |
+            //                   |     |     |     |   |     | (held) | DEL |
+            bindings = <
+&kp N1        &kp N2  &kp N3  &kp N4   &kp N5       &kp N6   &kp N7     &kp N8     &kp N9     &kp N0
+&ht LSHFT F1  &kp F2  &kp F3  &kp F4   &kp F5       &kp F6   &kp MINUS  &kp EQUAL  &kp GRAVE  &ht RSHFT SEMI
+&ht LSHFT F7  &kp F8  &kp F9  &kp F10  &kp F11      &kp F12  &trans     &kp LBKT   &kp RBKT   &ht RSHFT BSLH
+                      &trans  &trans   &trans       &trans   &trans     &kp DEL
+            >;
+        };
+
+        nav {
+            display-name = "Nav";
+            // |      |      | MS_U | MCLK |      |   | HOME | END  | PGUP | PGDN |     |
+            // | LCLK | MS_L | MS_D | MS_R | RCLK |   | LEFT | DOWN |  UP  | RGHT |     |
+            // |      | PREV | STOP | PLAY | NEXT |   | BRI- | BRI+ | VOL- | VOL+ |     |
+            bindings = <
+&trans     &trans          &mmv MOVE_UP    &mkp MCLK        &trans           &kp HOME      &kp END       &kp PG_UP     &kp PG_DN     &trans
+&mkp LCLK  &mmv MOVE_LEFT  &mmv MOVE_DOWN  &mmv MOVE_RIGHT  &mkp RCLK        &kp LEFT      &kp DOWN      &kp UP        &kp RIGHT     &trans
+&trans     &kp C_PREV      &kp C_STOP      &kp C_PP         &kp C_NEXT       &kp C_BRI_DN  &kp C_BRI_UP  &kp C_VOL_DN  &kp C_VOL_UP  &trans
+                           &trans          &trans           &trans           &trans        &trans        &trans
+            >;
+        };
+
+        system {
+            display-name = "System";
+            // Hold Enter + Backspace (right thumbs, pressed together). Replaces the Vial macro layer.
+            // |  BT0  | BT1 | BT2 | BT3 | BT4 |   |     |     |     |     |       |
+            // | BTCLR |     |     |     |     |   |     |     |     |     |       |
+            // | BOOT  |     |     |     | OUT |   |     |     |     |     | BOOT  |
+            bindings = <
+&bt BT_SEL 0  &bt BT_SEL 1  &bt BT_SEL 2  &bt BT_SEL 3  &bt BT_SEL 4    &none  &none  &none  &none  &none
+&bt BT_CLR    &none         &none         &none         &none           &none  &none  &none  &none  &none
+&bootloader   &none         &none         &none         &out OUT_TOG    &none  &none  &none  &none  &bootloader
+                            &none         &none         &none           &none  &trans &trans
+            >;
+        };
+    };
+};
