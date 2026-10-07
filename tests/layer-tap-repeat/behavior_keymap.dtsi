@@ -1,0 +1,41 @@
+// Simulator tests for src/behaviors/behavior_layer_tap_repeat.c; run ./test.sh
+#include <dt-bindings/zmk/keys.h>
+#include <behaviors.dtsi>
+#include <dt-bindings/zmk/kscan_mock.h>
+
+// Positions: 0 = Bksp/Nav (ltr), 1 = J, 2 = K, 3 = Tab/Ctrl, 4 = Enter/Num, 5 = A, 6 = Shift, 7 = Alt
+&kscan { rows = <2>; columns = <4>; };
+
+// The hold-taps are the follow copy (see config/corne.keymap), so these tests cover it too.
+&mt { status = "disabled"; };
+&lt { compatible = "zmk,behavior-hold-tap-follow"; tapping-term-ms = <180>; quick-tap-ms = <180>; };
+
+/ {
+    behaviors {
+        ltr: ltr {
+            compatible = "zmk,behavior-layer-tap-repeat";
+            #binding-cells = <2>;
+        };
+        ht: ht {
+            compatible = "zmk,behavior-hold-tap-follow";
+            #binding-cells = <2>;
+            bindings = <&kp>, <&kp>;
+            tapping-term-ms = <180>;
+            quick-tap-ms = <180>;
+            flavor = "tap-preferred";
+        };
+    };
+
+    combos {
+        compatible = "zmk,combos";
+        system { timeout-ms = <50>; key-positions = <4 0>; bindings = <&mo 3>; };
+    };
+
+    keymap {
+        compatible = "zmk,keymap";
+        base { bindings = <&ltr 1 BSPC &kp J &kp K &ht LCTRL TAB &lt 2 ENTER &kp A &kp LSHFT &kp LALT>; };
+        nav  { bindings = <&trans &kp DOWN &kp UP &trans &trans &trans &trans &trans>; };
+        num  { bindings = <&kp DEL &kp N1 &kp N2 &trans &trans &trans &trans &trans>; };
+        sys  { bindings = <&none &kp F1 &none &none &none &none &none &none>; };
+    };
+};

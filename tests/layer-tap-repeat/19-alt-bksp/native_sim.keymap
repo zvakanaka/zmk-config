@@ -1,0 +1,9 @@
+#include <dt-bindings/zmk/keys.h>
+#include <behaviors.dtsi>
+#include <dt-bindings/zmk/kscan_mock.h>
+#include "../behavior_keymap.dtsi"
+
+// Alt held: Bksp still taps (Alt+Backspace)
+&kscan {
+    events = <ZMK_MOCK_PRESS(1,3,50) ZMK_MOCK_PRESS(0,0,50) ZMK_MOCK_RELEASE(0,0,50) ZMK_MOCK_RELEASE(1,3,500)>;
+};

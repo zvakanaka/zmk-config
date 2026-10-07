@@ -1,0 +1,44 @@
+// Simulator tests for hold-follow-key-positions in src/behaviors/behavior_hold_tap_follow.c; run ./test.sh
+#include <dt-bindings/zmk/keys.h>
+#include <behaviors.dtsi>
+#include <dt-bindings/zmk/kscan_mock.h>
+
+// Mirrors the Z, /, ' and A keys in config/corne.keymap.
+// Positions: 0 = Z/Shift (hsp), 1 = //Shift (hsp), 2 = '/Shift (hs), 3 = A/Shift (hs),
+//            4 = X, 5 = Y, 6 = Enter/layer 1 (lt), 7 = E
+&kscan { rows = <2>; columns = <4>; };
+
+&mt { status = "disabled"; };
+&lt { compatible = "zmk,behavior-hold-tap-follow"; tapping-term-ms = <180>; quick-tap-ms = <180>; };
+
+/ {
+    behaviors {
+        // Z and /: Z followed by / is Shift+/.
+        hsp: hsp {
+            compatible = "zmk,behavior-hold-tap-follow";
+            #binding-cells = <2>;
+            bindings = <&kp>, <&kp>;
+            tapping-term-ms = <180>;
+            quick-tap-ms = <180>;
+            flavor = "balanced";
+            hold-follow-key-positions = <1>;
+        };
+        // ' and A: ' followed by A is Shift+A.
+        hs: hs {
+            compatible = "zmk,behavior-hold-tap-follow";
+            #binding-cells = <2>;
+            bindings = <&kp>, <&kp>;
+            tapping-term-ms = <180>;
+            quick-tap-ms = <180>;
+            require-prior-idle-ms = <125>;
+            flavor = "tap-preferred";
+            hold-follow-key-positions = <3>;
+        };
+    };
+
+    keymap {
+        compatible = "zmk,keymap";
+        base   { bindings = <&hsp LSHFT Z &hsp RSHFT SLASH &hs RSHFT SQT &hs LSHFT A &kp X &kp Y &lt 1 ENTER &kp E>; };
+        layer1 { bindings = <&kp N1 &kp N2 &kp N3 &kp N4 &kp N5 &kp N6 &trans &kp N8>; };
+    };
+};
