@@ -12,8 +12,6 @@ Much of that code comes from <https://github.com/juhakaup/zmk-cygnus-4x6>.
 
 Hold Enter for Num, hold Backspace for Nav, and press Enter + Backspace together and hold for System.
 
-Two quick chords always give the shifted key, however fast and whichever key is released first: Z then `/` types `?`, and `'` then A types `A`.
-
 ```
 BASE   (top line = tap, bottom line = hold)
 
@@ -105,7 +103,7 @@ The first run downloads ZMK, Zephyr and modules into `.zmk/`, which is gitignore
 ## Custom behaviors and tests
 
 - `src/behaviors/behavior_layer_tap_repeat.c`: the Backspace/Nav key (`&ltr`). Tap for Backspace, hold for Nav, and hold alone to repeat Backspace.
-- `src/behaviors/behavior_hold_tap_follow.c`: a copy of ZMK's hold-tap with one extra setting, `hold-follow-key-positions`, which makes the Z and `'` chords above work. Hold-taps share global state, so every hold-tap in the keymap uses this copy (the stock `&mt` is disabled), and it needs syncing by hand if ZMK's hold-tap changes.
+- `src/behaviors/behavior_hold_tap_follow.c`: a copy of ZMK's hold-tap with one extra setting, `hold-follow-key-positions`, which makes two quick chords always give the shifted key, however fast and whichever key is released first: Z then `/` types `?`, and `'` then A types `A`. Hold-taps share global state, so every hold-tap in the keymap uses this copy (the stock `&mt` is disabled), and it needs syncing by hand if ZMK's hold-tap changes.
 
 `./test.sh` runs the simulator tests in `tests/` against both. Each test replays timed key presses and compares the keycodes sent with a snapshot (`./test.sh --accept` rewrites the snapshots, so check the diff). Run `./build.sh` once first.
 
