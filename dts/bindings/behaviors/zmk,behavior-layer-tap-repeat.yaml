@@ -1,0 +1,19 @@
+description: Layer-tap that repeats its key when held alone (see src/behaviors/behavior_layer_tap_repeat.c)
+
+compatible: "zmk,behavior-layer-tap-repeat"
+
+include: two_param.yaml
+
+properties:
+  tapping-term-ms:
+    type: int
+    default: 180
+  repeat-term-ms:
+    type: int
+    default: 400
+  repeat-interval-ms:
+    type: int
+    default: 25
+  quick-tap-ms:
+    type: int
+    default: 180
