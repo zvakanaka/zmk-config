@@ -13,3 +13,10 @@ include:
   - board: nice_nano@2.0.0//zmk
     shield: settings_reset
     artifact-name: settings_reset
+  # The Dactyl Cygnus 4x6 (config/cygnus.keymap): the same keymap as the Corne plus its extra keys.
+  - board: nice_nano@2.0.0//zmk
+    shield: cygnus_left
+    artifact-name: cygnus_left
+  - board: nice_nano@2.0.0//zmk
+    shield: cygnus_right
+    artifact-name: cygnus_right

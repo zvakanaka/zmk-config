@@ -1,112 +1,84 @@
-#include <behaviors.dtsi>
-#include <dt-bindings/zmk/bt.h>
-#include <dt-bindings/zmk/keys.h>
+// Dactyl Cygnus 4x6: the Corne 3x5 keymap (config/corne.keymap) plus the extra keys this board has.
+// The behaviors and the layers' keys are shared with the other keyboards: config/common/.
+//
+// Key positions (4x6 + 3 thumbs):
+//  0  1  2  3  4  5     6  7  8  9 10 11     number row (extra)
+// 12 13 14 15 16 17    18 19 20 21 22 23     Q row (the Corne's top row, with an outer key each side)
+// 24 25 26 27 28 29    30 31 32 33 34 35     A row
+// 36 37 38 39 40 41    42 43 44 45 46 47     Z row
+//          48 49 50    51 52 53              thumbs
+//
+// Extra keys: a number row on top, and an outer column on each side (Esc Tab Ctrl Shift on the left, Bksp Del
+// Enter Shift on the right). The extras are transparent on the Num, Nav and System layers, so they keep working
+// there.
+
+#define HS_FOLLOW_POS 25                // A
+#define HSP_FOLLOW_POS 46               // /
+#define SYSTEM_COMBO_POSITIONS 52 53    // Enter and Backspace
+#include "common/behaviors.dtsi"
+#include "common/combos.dtsi"
+#include "common/layers.dtsi"
+
+// The extra keys (X = extra; 0 is the number row, then the Q, A and Z rows; L and R are the left and right edge)
+#define BASE_X0_L &kp ESC
+#define BASE_X0_R &kp BSPC
+#define BASE_N_L &kp N1  &kp N2  &kp N3  &kp N4  &kp N5
+#define BASE_N_R &kp N6  &kp N7  &kp N8  &kp N9  &kp N0
+#define BASE_X1_L &kp TAB
+#define BASE_X1_R &kp DEL
+#define BASE_X2_L &kp LCTRL
+#define BASE_X2_R &kp ENTER
+#define BASE_X3_L &kp LSHFT
+#define BASE_X3_R &kp RSHFT
+
+#define PASS_N &trans  &trans  &trans  &trans  &trans
+#define PASS &trans
 
 / {
-    combos {
-        compatible = "zmk,combos";
-
-        bluetooth {
-            bindings = <&mo 3>;
-            key-positions = <41 36>;
-        };
-
-        bt2 {
-            bindings = <&mo 3>;
-            key-positions = <48 53>;
-        };
-    };
-
-    behaviors {
-        hml: hml {
-            compatible = "zmk,behavior-hold-tap";
-            label = "HOME_ROW_LEFT";
-            bindings = <&kp>, <&kp>;
-
-            #binding-cells = <2>;
-            hold-trigger-key-positions = <6 7 8 9 10 11 18 19 20 21 22 23 30 31 32 33 34 35 42 43 44 45 46 47>;
-            tapping-term-ms = <180>;
-            quick-tap-ms = <175>;
-            require-prior-idle-ms = <150>;
-            flavor = "balanced";
-            hold-trigger-on-release;
-        };
-
-        hmr: hmr {
-            compatible = "zmk,behavior-hold-tap";
-            label = "HOME_ROW_RIGHT";
-            bindings = <&kp>, <&kp>;
-
-            #binding-cells = <2>;
-            tapping-term-ms = <180>;
-            quick-tap-ms = <175>;
-            require-prior-idle-ms = <150>;
-            flavor = "balanced";
-            hold-trigger-key-positions = <0 1 2 3 4 5 12 13 14 15 16 17 24 25 26 27 28 29 36 37 38 39 40 41>;
-            hold-trigger-on-release;
-        };
-    };
-
     keymap {
         compatible = "zmk,keymap";
 
         default_layer {
-            // -----------------------------------------------------------------------------------------
-            // |  ESC |  1  |  2  |  3  |  4  |  5  |   |  6  |  7   |  8  |  9  |  0  |  ?   |
-            // |  TAB |  Q  |  W  |  E  |  R  |  T  |   |  Y  |  U   |  I  |  O  |  P  | BKSP |
-            // | CTRL |  A  |  S  |  D  |  F  |  G  |   |  H  |  J   |  K  |  L  |  ;  |  '   |
-            // | SHFT |  Z  |  X  |  C  |  V  |  B  |   |  N  |  M   |  ,  |  .  |  /  | ESC  |
-            //                    | GUI | LWR | SPC |   | ENT | RSE  | ALT |
-
+            display-name = "Base";
             bindings = <
-&kp ESCAPE  &kp N1  &kp N2            &kp N3           &kp N4               &kp N5             &kp N6     &kp N7                &kp N8            &kp N9            &kp N0            &kp BSPC
-&kp TAB     &kp Q   &kp W             &kp E            &kp R                &kp T              &kp Y      &kp U                 &kp I             &kp O             &kp P             &kp ENTER
-&kp LCTRL   &kp A   &hml RIGHT_ALT S  &hml LEFT_GUI D  &hml LEFT_SHIFT F    &kp G              &kp H      &hmr RIGHT_SHIFT J    &hmr RIGHT_GUI K  &hmr RIGHT_ALT L  &kp SEMI          &kp SQT
-&kp LSHFT   &kp Z   &kp X             &kp C            &hml LEFT_CONTROL V  &kp B              &kp N      &hmr RIGHT_CONTROL M  &kp COMMA         &kp DOT           &kp SINGLE_QUOTE  &kp RIGHT_SHIFT
-                                      &lt 3 ESC        &lt 2 TAB            &lt 1 BACKSPACE    &kp SPACE  &lt 2 DEL             &lt 3 ENTER
+BASE_X0_L BASE_N_L    BASE_N_R BASE_X0_R
+BASE_X1_L BASE_L1     BASE_R1  BASE_X1_R
+BASE_X2_L BASE_L2     BASE_R2  BASE_X2_R
+BASE_X3_L BASE_L3     BASE_R3  BASE_X3_R
+                      BASE_TL  BASE_TR
             >;
         };
 
-        layer_1 {
-            // -----------------------------------------------------------------------------------------
-            // |  TAB |  F1 |  F2 |  F3 |  F4 |  F5 |   |  F6 |  F7 |  F8 |  F9 | F10 | BKSP |
-            // |  TAB |  1  |  2  |  3  |  4  |  5  |   |  6  |  7  |  8  |  9  |  0  | BKSP |
-            // | BTCLR| BT1 | BT2 | BT3 | BT4 | BT5 |   | LFT | DWN |  UP | RGT |     |      |
-            // | SHFT |     |     |     |     |     |   |     |     |     |     |     |      |
-            //                    | GUI |     | SPC |   | ENT |     | ALT |
-
+        num {
+            display-name = "Num";
             bindings = <
-&trans  &kp F1        &kp F2        &kp F3        &kp F4        &kp F5           &kp F6     &kp F7                          &kp F8                     &kp F9         &kp F10       &kp F11
-&trans  &kp NUMBER_1  &kp NUMBER_2  &kp NUMBER_3  &kp NUMBER_4  &kp N5           &kp N6     &kp N7                          &kp N8                     &kp N9         &kp N0        &kp F12
-&trans  &trans        &trans        &trans        &trans        &trans           &trans     &hmr RIGHT_SHIFT RIGHT_BRACKET  &hmr RIGHT_GUI LEFT_BRACE  &kp RIGHT_ALT  &kp UP_ARROW  &kp BSLH
-&trans  &kp GRAVE     &kp EQUAL     &trans        &trans        &trans           &kp SLASH  &kp MINUS                       &trans                     &kp LEFT       &kp DOWN      &kp RIGHT
-                                    &trans        &trans        &kp BACKSPACE    &trans     &trans                          &trans
+PASS PASS_N    PASS_N PASS
+PASS NUM_L1    NUM_R1 PASS
+PASS NUM_L2    NUM_R2 PASS
+PASS NUM_L3    NUM_R3 PASS
+               NUM_TL NUM_TR
             >;
         };
 
-        layer_2 {
-            // -----------------------------------------------------------------------------------------
-            // |  TAB |  !  |  @  |  #  |  $  |  %  |   |  ^  |  &  |  *  |  (  |  )  | BKSP |
-            // | CTRL |     |     |     |     |     |   |  -  |  =  |  [  |  ]  |  \  |  `   |
-            // | SHFT |     |     |     |     |     |   |  _  |  +  |  {  |  }  | "|" |  ~   |
-            //                    | GUI |     | SPC |   | ENT |     | ALT |
-
+        nav {
+            display-name = "Nav";
             bindings = <
-&trans  &trans    &trans  &trans    &trans    &trans           &trans     &trans     &trans     &trans    &trans    &trans
-&trans  &kp EXCL  &kp AT  &kp HASH  &kp DLLR  &kp PRCNT        &kp CARET  &kp AMPS   &kp ASTRK  &kp LPAR  &kp RPAR  &trans
-&trans  &trans    &trans  &trans    &trans    &trans           &kp MINUS  &kp EQUAL  &kp LBKT   &kp RBKT  &kp BSLH  &kp GRAVE
-&trans  &trans    &trans  &trans    &trans    &trans           &kp UNDER  &kp PLUS   &kp LBRC   &kp RBRC  &kp PIPE  &kp TILDE
-                          &trans    &trans    &kp BACKSPACE    &trans     &trans     &trans
+PASS PASS_N    PASS_N PASS
+PASS NAV_L1    NAV_R1 PASS
+PASS NAV_L2    NAV_R2 PASS
+PASS NAV_L3    NAV_R3 PASS
+               NAV_TL NAV_TR
             >;
         };
 
-        bluetooth {
+        system {
+            display-name = "System";
             bindings = <
-&bt BT_SEL 0  &bt BT_SEL 1  &bt BT_SEL 2  &bt BT_SEL 3  &trans  &bt BT_CLR    &trans  &trans  &trans  &trans  &trans  &trans
-&trans        &trans        &trans        &trans        &trans  &trans        &trans  &trans  &trans  &trans  &trans  &trans
-&trans        &trans        &trans        &trans        &trans  &trans        &trans  &trans  &trans  &trans  &trans  &trans
-&trans        &trans        &trans        &trans        &trans  &trans        &trans  &trans  &trans  &trans  &trans  &trans
-                                          &trans        &trans  &trans        &trans  &trans  &trans
+PASS PASS_N    PASS_N PASS
+PASS SYS_L1    SYS_R1 PASS
+PASS SYS_L2    SYS_R2 PASS
+PASS SYS_L3    SYS_R3 PASS
+               SYS_TL SYS_TR
             >;
         };
     };

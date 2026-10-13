@@ -58,7 +58,7 @@ while read -r line <&3; do
   echo "=== $name: $board ${shield:+($shield)}"
   # shellcheck disable=SC2086
   west build -s zmk/app -d "build/$name" -b "$board" -p "$PRISTINE" ${snippet:+-S "$snippet"} -- \
-    -DZMK_CONFIG=/ws/config -DZMK_EXTRA_MODULES=/zmk-config ${shield:+-DSHIELD="$shield"} $cmake_args
+    -DZMK_CONFIG=/ws/config -DZMK_EXTRA_MODULES=/zmk-config -DEXTRA_CONF_FILE=/ws/config/common.conf ${shield:+-DSHIELD="$shield"} $cmake_args
   cp "build/$name/zephyr/zmk.uf2" "/zmk-config/firmware/$name.uf2"
 done 3< /tmp/targets
 EOF

@@ -1,0 +1,15 @@
+// The System layer combo, shared by every keyboard in this repo. Define SYSTEM_COMBO_POSITIONS first: the two
+// keys (Enter and Backspace) that together hold the System layer. Needs behaviors.dtsi first (for SYS).
+/ {
+    combos {
+        compatible = "zmk,combos";
+
+        // Press Enter + Backspace together (the two outer right thumbs) and hold for the System layer.
+        // Holding Enter first and then tapping Backspace still gives Delete, because the combo needs both within 50 ms.
+        system {
+            timeout-ms = <50>;
+            key-positions = <SYSTEM_COMBO_POSITIONS>;
+            bindings = <&mo SYS>;
+        };
+    };
+};

@@ -1,0 +1,53 @@
+// The layers' keys, shared by every keyboard in this repo. Each macro is one row of one half: five keys
+// (the Corne's 3x5 block); L is the left half, R the right, 1-3 the top, home and bottom rows, and TL and TR the
+// three thumb keys of each half. A keyboard puts them in its own matrix order, and adds its own extra keys
+// (config/cygnus.keymap has a number row and an outer column on each side). Needs behaviors.dtsi first.
+//
+//   BASE   tap = the top legend, hold = the bottom one:
+//          Q/Ctrl  W E R T      Y U I O P
+//          A/Shift S D F G      H J K L '/Shift
+//          Z/Shift X C V B      N M , . //Shift
+//              Esc/Alt Space/Gui Tab/Ctrl     PrtSc Enter/Num Bksp/Nav
+//   NUM    hold Enter
+//   NAV    hold Backspace
+//   SYS    hold Enter + Backspace together (see SYSTEM_COMBO_POSITIONS)
+
+// Base
+#define BASE_L1 &ht LCTRL Q  &kp W  &kp E  &kp R  &kp T
+#define BASE_R1 &kp Y  &kp U  &kp I  &kp O  &kp P
+#define BASE_L2 &hs LSHFT A  &kp S  &kp D  &kp F  &kp G
+#define BASE_R2 &kp H  &kp J  &kp K  &kp L  &hs RSHFT SQT
+#define BASE_L3 &hsp LSHFT Z  &kp X  &kp C  &kp V  &kp B
+#define BASE_R3 &kp N  &kp M  &kp COMMA  &kp DOT  &hsp RSHFT SLASH
+#define BASE_TL &ht LALT ESC  &ht_space LGUI SPACE  &ht LCTRL TAB
+#define BASE_TR &kp PSCRN  &lt NUM ENTER  &ltr NAV BSPC
+
+// Num (hold Enter): digits, then F1-F12 with the punctuation that sits on the base layer's shifted keys.
+#define NUM_L1 &kp N1  &kp N2  &kp N3  &kp N4  &kp N5
+#define NUM_R1 &kp N6  &kp N7  &kp N8  &kp N9  &kp N0
+#define NUM_L2 &ht LSHFT F1  &kp F2  &kp F3  &kp F4  &kp F5
+#define NUM_R2 &kp F6  &kp MINUS  &kp EQUAL  &kp GRAVE  &ht RSHFT SEMI
+#define NUM_L3 &ht LSHFT F7  &kp F8  &kp F9  &kp F10  &kp F11
+#define NUM_R3 &kp F12  &trans  &kp LBKT  &kp RBKT  &ht RSHFT BSLH
+#define NUM_TL &trans  &trans  &trans
+#define NUM_TR &trans  &trans  &kp DEL
+
+// Nav (hold Backspace): mouse on the left, cursor and media on the right.
+#define NAV_L1 &trans  &trans  &mmv MOVE_UP  &mkp MCLK  &trans
+#define NAV_R1 &kp HOME  &kp END  &kp PG_UP  &kp PG_DN  &trans
+#define NAV_L2 &mkp LCLK  &mmv MOVE_LEFT  &mmv MOVE_DOWN  &mmv MOVE_RIGHT  &mkp RCLK
+#define NAV_R2 &kp LEFT  &kp DOWN  &kp UP  &kp RIGHT  &trans
+#define NAV_L3 &trans  &kp C_PREV  &kp C_STOP  &kp C_PP  &kp C_NEXT
+#define NAV_R3 &kp C_BRI_DN  &kp C_BRI_UP  &kp C_VOL_DN  &kp C_VOL_UP  &trans
+#define NAV_TL &trans  &trans  &trans
+#define NAV_TR &trans  &trans  &trans
+
+// System (hold Enter + Backspace): Bluetooth profiles, output toggle, bootloader on both halves.
+#define SYS_L1 &bt BT_SEL 0  &bt BT_SEL 1  &bt BT_SEL 2  &bt BT_SEL 3  &bt BT_SEL 4
+#define SYS_R1 &none  &none  &none  &none  &none
+#define SYS_L2 &bt BT_CLR  &none  &none  &none  &none
+#define SYS_R2 &none  &none  &none  &none  &none
+#define SYS_L3 &bootloader  &none  &none  &none  &out OUT_TOG
+#define SYS_R3 &none  &none  &none  &none  &bootloader
+#define SYS_TL &none  &none  &none
+#define SYS_TR &none  &trans  &trans

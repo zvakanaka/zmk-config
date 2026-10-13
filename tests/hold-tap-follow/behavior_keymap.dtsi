@@ -8,34 +8,12 @@
 //            4 = X, 5 = Y, 6 = Enter/layer 1 (lt), 7 = E
 &kscan { rows = <2>; columns = <4>; };
 
-&mt { status = "disabled"; };
-&lt { compatible = "zmk,behavior-hold-tap-follow"; tapping-term-ms = <180>; quick-tap-ms = <180>; };
+// The real hold-taps from config/common/behaviors.dtsi, with this test layout's positions.
+#define HS_FOLLOW_POS 3     // A
+#define HSP_FOLLOW_POS 1    // /
+#include "../../config/common/behaviors.dtsi"
 
 / {
-    behaviors {
-        // Z and /: Z followed by / is Shift+/.
-        hsp: hsp {
-            compatible = "zmk,behavior-hold-tap-follow";
-            #binding-cells = <2>;
-            bindings = <&kp>, <&kp>;
-            tapping-term-ms = <180>;
-            quick-tap-ms = <180>;
-            flavor = "balanced";
-            hold-follow-key-positions = <1>;
-        };
-        // ' and A: ' followed by A is Shift+A.
-        hs: hs {
-            compatible = "zmk,behavior-hold-tap-follow";
-            #binding-cells = <2>;
-            bindings = <&kp>, <&kp>;
-            tapping-term-ms = <180>;
-            quick-tap-ms = <180>;
-            require-prior-idle-ms = <125>;
-            flavor = "tap-preferred";
-            hold-follow-key-positions = <3>;
-        };
-    };
-
     keymap {
         compatible = "zmk,keymap";
         base   { bindings = <&hsp LSHFT Z &hsp RSHFT SLASH &hs RSHFT SQT &hs LSHFT A &kp X &kp Y &lt 1 ENTER &kp E>; };
