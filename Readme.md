@@ -5,8 +5,7 @@ The keymap is in `config/corne.keymap`, and the build targets are listed in `bui
 
 The keymap was inspired by [Peter J's keymap](https://keymapdb.com/keymaps/peterxjang/).
 
-The older Dactyl Cygnus 4x6 shield (`boards/shields/cygnus`, `config/cygnus.keymap`) is still here but isn't built.
-Much of that code comes from <https://github.com/juhakaup/zmk-cygnus-4x6>.
+A Dactyl Cygnus 4x6 keymap is built from the same shared pieces: see [cygnus/](cygnus/README.md).
 
 ## Keymap
 
@@ -21,6 +20,17 @@ The picture is drawn from `config/corne.keymap` by `tools/draw-keymap.py` (needs
 ```sh
 tools/draw-keymap.py
 ```
+
+## Sharing between keyboards
+
+The Corne is the reference. Everything a keyboard shares lives in `config/common*`, so a change there reaches every keyboard:
+
+- `config/common/behaviors.dtsi`: the hold-taps (`&ht`, `&ht_space`, `&hs`, `&hsp`, `&lt`) and `&ltr`.
+- `config/common/layers.dtsi`: every layer's keys, as one macro per row of each half (`BASE_L1`, `NUM_R2`, `NAV_TL`, ...).
+- `config/common/combos.dtsi`: the Enter + Backspace combo for the System layer.
+- `config/common.conf`: Kconfig settings every target gets (mouse keys, battery reporting, deep sleep). `build.sh` passes it to every build.
+
+A keyboard's own keymap defines the few positions the behaviors depend on (where A and `/` are, and the two System combo keys), includes those files, then lays the macros out in its own matrix and adds its own extra keys. `config/corne.keymap` is the short example. To add a keyboard, copy a keymap, set those three positions, and add its targets to `build.yaml`.
 
 ## Building
 
@@ -40,7 +50,7 @@ The first run downloads ZMK, Zephyr and modules into `.zmk/`, which is gitignore
 - `src/behaviors/behavior_layer_tap_repeat.c`: the Backspace/Nav key (`&ltr`). Tap for Backspace, hold for Nav, and hold alone to repeat Backspace.
 - `src/behaviors/behavior_hold_tap_follow.c`: a copy of ZMK's hold-tap with one extra setting, `hold-follow-key-positions`, which makes two quick chords always give the shifted key, however fast and whichever key is released first: Z then `/` types `?`, and `'` then A types `A`. Hold-taps share global state, so every hold-tap in the keymap uses this copy (the stock `&mt` is disabled), and it needs syncing by hand if ZMK's hold-tap changes.
 
-`./test.sh` runs the simulator tests in `tests/` against both. Each test replays timed key presses and compares the keycodes sent with a snapshot (`./test.sh --accept` rewrites the snapshots, so check the diff). Run `./build.sh` once first.
+`./test.sh` runs the simulator tests in `tests/` against both (`./test.sh layer-tap-repeat/02-*` runs one). The tests include `config/common/behaviors.dtsi`, so they run the same hold-taps as the keymaps. Each test replays timed key presses and compares the keycodes sent with a snapshot (`./test.sh --accept` rewrites the snapshots, so check the diff). Run `./build.sh` once first.
 
 ## Flashing
 
@@ -50,6 +60,15 @@ You can also hold Enter + Backspace (System layer) and press `BOOT`, the bottom 
 If the halves won't pair, flash `settings_reset.uf2` to both halves, then flash the normal firmware again.
 
 The left half is the central and has ZMK Studio enabled over USB, at <https://zmk.studio>.
+
+## Sleep
+
+Each half goes into deep sleep after 30 minutes without a key press (`CONFIG_ZMK_SLEEP` and `CONFIG_ZMK_IDLE_SLEEP_TIMEOUT=1800000` in `config/common.conf`). Asleep it is powered off apart from the key matrix, so the battery barely drains.
+
+- Any key press wakes it. The Bluetooth connection was dropped, so the keyboard reconnects to the host, which takes a second or two, and the key that woke it is usually lost.
+- Each half sleeps on its own timer. Typing only on the left for 30 minutes can put the right half to sleep; pressing a key on it wakes it and it re-pairs with the left half.
+- It never sleeps while USB power is connected.
+- Without `CONFIG_ZMK_SLEEP` a ZMK keyboard never sleeps at all (ZMK's separate 30-second "idle" state only turns off things like displays and backlight, and these boards have none).
 
 ## Battery
 

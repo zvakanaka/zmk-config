@@ -17,20 +17,25 @@ import cairo
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.dirname(HERE)
-KEYMAP = os.path.join(REPO, "config", "corne.keymap")
-OUTPUT = os.path.join(REPO, "docs", "keymap.png")
+CONFIG = os.path.join(REPO, "config")
+KEYBOARDS = {  # keymap -> (title, output)
+    "corne": ("Corne 3×5", os.path.join(REPO, "docs", "keymap.png")),
+    "cygnus": ("Dactyl Cygnus 4×6", os.path.join(REPO, "cygnus", "keymap.png")),
+}
 
 # --------------------------------------------------------------------------
-# Physical layout: ZMK's foostan_corne_5col_layout (zmk/app/dts/layouts/
-# foostan/corne/5column.dtsi), in hundredths of a key. x, y, w, h, rotation
-# in degrees, and the point it rotates about. Index = key position.
+# Physical layouts, in hundredths of a key: (x, y, w, h, rotation in degrees,
+# pivot x, pivot y), in key-position order.
 # --------------------------------------------------------------------------
+
+# Corne: ZMK's foostan_corne_5col_layout (zmk/app/dts/layouts/foostan/corne/
+# 5column.dtsi).
 _LEFT = [(0, 37), (100, 12), (200, 0), (300, 12), (400, 24)]    # x, y of each column
 _RIGHT = [(700, 24), (800, 12), (900, 0), (1000, 12), (1100, 37)]
-KEYS = []
-for row in range(3):
-    KEYS += [(x, row * 100 + y, 100, 100, 0, 0, 0) for x, y in _LEFT + _RIGHT]
-KEYS += [
+CORNE = []
+for _row in range(3):
+    CORNE += [(x, _row * 100 + y, 100, 100, 0, 0, 0) for x, y in _LEFT + _RIGHT]
+CORNE += [
     (250, 312, 100, 100, 0, 0, 0),
     (350, 312, 100, 100, 12, 350, 412),
     (448, 283, 100, 150, 24, 448, 433),
@@ -39,27 +44,97 @@ KEYS += [
     (850, 312, 100, 100, 0, 0, 0),
 ]
 
+
+def cygnus_layout():
+    """The Cygnus's 4x6 main keys, as config/info.json places them; its
+    thumbs are drawn as the Corne's fan under each half (info.json's thumb
+    rotations don't resolve to a sensible picture, so this part is only
+    approximate)."""
+    import json
+    info = json.load(open(os.path.join(CONFIG, "info.json")))
+    main = [k for k in info["layouts"]["default_transform"]["layout"] if k["row"] < 4]
+    main.sort(key=lambda k: (k["row"], k["x"]))
+    keys = [(round(k["x"] * 100), round(k["y"] * 100), 100, 100, 0, 0, 0) for k in main]
+    thumbs = CORNE[30:]
+    left = [(x + 100, y + 100, w, h, r, rx + 100 if rx else 0, ry + 100 if ry else 0) for x, y, w, h, r, rx, ry in thumbs[:3]]
+    right = [(x + 200, y + 100, w, h, r, rx + 200 if rx else 0, ry + 100 if ry else 0) for x, y, w, h, r, rx, ry in thumbs[3:]]
+    return keys + left + right
+
+
+LAYOUTS = {36: CORNE}   # by number of keys; the Cygnus (54) is added on demand
+KEYS = CORNE
+
 # --------------------------------------------------------------------------
 # Parsing the keymap
 # --------------------------------------------------------------------------
 
 
+LAYER_TAGS = {"BASE", "NUM", "NAV", "SYS"}  # #defines that are layer numbers; keep them as names
+
+
+def read_with_includes(path, seen=None):
+    """The file's text with its #include "..." lines replaced by the included
+    file (the <...> includes are ZMK's own and are left out), comments removed."""
+    seen = seen if seen is not None else set()
+    path = os.path.realpath(path)
+    if path in seen:
+        return ""
+    seen.add(path)
+    out = []
+    for line in open(path).read().splitlines():
+        line = re.sub(r"//.*", "", line)
+        m = re.match(r'\s*#include\s+"([^"]+)"', line)
+        if m:
+            out.append(read_with_includes(os.path.join(os.path.dirname(path), m.group(1)), seen))
+        elif re.match(r"\s*#include\s+<", line):
+            continue
+        else:
+            out.append(line)
+    return "\n".join(out)
+
+
+def expand_macros(text):
+    """Expands the object-like #define macros in `text` (the layers' key rows
+    are macros in config/common/layers.dtsi). Layer-number defines are kept."""
+    macros, kept = {}, []
+    for line in text.splitlines():
+        m = re.match(r"\s*#define\s+(\w+)(?:\s+(.*))?$", line)
+        if m:
+            name, body = m.group(1), (m.group(2) or "").strip()
+            if name in LAYER_TAGS:
+                kept.append(line)
+            else:
+                macros[name] = body
+        else:
+            kept.append(line)
+    text = "\n".join(kept)
+    pattern = re.compile(r"\b(" + "|".join(sorted(map(re.escape, macros), key=len, reverse=True)) + r")\b") if macros else None
+    for _ in range(10):  # macros use other macros
+        if not pattern:
+            break
+        new = pattern.sub(lambda m: macros[m.group(1)], text)
+        if new == text:
+            break
+        text = new
+    return text
+
+
 def parse_keymap(path):
-    """Returns ([(name, [binding, ...36]), ...], [combo, ...]). A binding is
-    a list: its behavior (without the &) followed by its arguments."""
-    text = open(path).read()
-    text = re.sub(r"//[^\n]*", "", text)
+    """Returns (layers, combos, defines): layers = [(display name, [binding
+    ...]), ...] where a binding is a list (its behavior without the &, then
+    its arguments), combos = [([positions], layer tag)], defines = the layer
+    numbers."""
+    raw = read_with_includes(path)
+    defines = {k: int(v) for k, v in re.findall(r"#define (\w+) (\d+)\s*$", raw, re.M) if k in LAYER_TAGS}
+    text = expand_macros(raw)
     layers = []
     for m in re.finditer(r'(\w+)\s*\{\s*display-name\s*=\s*"([^"]+)";.*?bindings\s*=\s*<(.*?)>;', text, re.S):
         bindings = [b.split() for b in m.group(3).split("&") if b.strip()]
         layers.append((m.group(2), bindings))
     combos = []
-    cm = re.search(r"combos\s*\{(.*?)\n    \};", text, re.S)
-    if cm:
-        for m in re.finditer(r"key-positions\s*=\s*<([^>]*)>;\s*bindings\s*=\s*<&mo (\w+)>", cm.group(1), re.S):
-            combos.append(([int(n) for n in m.group(1).split()], m.group(2)))
-    defines = dict(re.findall(r"#define (\w+) (\d+)", text))
-    return layers, combos, {k: int(v) for k, v in defines.items()}
+    for m in re.finditer(r"key-positions\s*=\s*<([^>]*)>;\s*bindings\s*=\s*<&mo (\w+)>", text, re.S):
+        combos.append(([int(n) for n in m.group(1).split()], m.group(2)))
+    return layers, combos, defines
 
 
 # --------------------------------------------------------------------------
@@ -78,6 +153,8 @@ KEYS_LEGEND = {
     "ESC": ("Esc", "edit"), "SPACE": ("Space", "edit"), "TAB": ("Tab", "edit"),
     "ENTER": ("Enter", "edit"), "BSPC": ("Bksp", "edit"), "DEL": ("Del", "edit"),
     "PSCRN": ("PrtSc", "edit"),
+    "LCTRL": ("Ctrl", "edit"), "RCTRL": ("Ctrl", "edit"), "LSHFT": ("Shift", "edit"), "RSHFT": ("Shift", "edit"),
+    "LALT": ("Alt", "edit"), "RALT": ("Alt", "edit"), "LGUI": ("Gui", "edit"), "RGUI": ("Gui", "edit"),
     "HOME": ("Home", "nav"), "END": ("End", "nav"), "PG_UP": ("PgUp", "nav"), "PG_DN": ("PgDn", "nav"),
     "LEFT": ("←", "nav"), "DOWN": ("↓", "nav"), "UP": ("↑", "nav"), "RIGHT": ("→", "nav"),
     "C_PREV": ("Prev", "media"), "C_STOP": ("Stop", "media"), "C_PP": ("Play", "media"),
@@ -153,8 +230,25 @@ LAYER_HEAD = 78
 LAYER_GAP = 34
 HEADER_H = 270
 FOOTER_H = 26
-BOARD_W = 1200 * UNIT / 100
-BOARD_H = 470 * UNIT / 100
+BOARD_W = BOARD_H = 0  # set per keyboard by use_layout()
+
+
+def use_layout(keys):
+    """Selects the physical layout to draw and sizes the board to fit it
+    (rotated keys included)."""
+    global KEYS, BOARD_W, BOARD_H
+    KEYS = keys
+    xs, ys = [], []
+    for x, y, w, h, rot, rx, ry in keys:
+        a = math.radians(rot)
+        for cx, cy in ((x, y), (x + w, y), (x, y + h), (x + w, y + h)):
+            dx, dy = cx - rx, cy - ry
+            xs.append(rx + dx * math.cos(a) - dy * math.sin(a) if rot else cx)
+            ys.append(ry + dx * math.sin(a) + dy * math.cos(a) if rot else cy)
+    s = UNIT / 100
+    BOARD_W = max(xs) * s
+    BOARD_H = max(ys) * s + 0.1 * UNIT
+
 
 INK = (0.13, 0.15, 0.19)
 MUTED = (0.47, 0.50, 0.56)
@@ -420,12 +514,16 @@ def draw_legend(cv, right, top, shown_kinds):
     return w, h
 
 
-def main():
-    keymap = sys.argv[1] if len(sys.argv) > 1 else KEYMAP
-    out = sys.argv[2] if len(sys.argv) > 2 else OUTPUT
+def draw(keymap, title, out):
     layers, combos, defines = parse_keymap(keymap)
+    n_keys = len(layers[0][1])
+    if n_keys not in LAYOUTS:
+        LAYOUTS[n_keys] = cygnus_layout() if n_keys == 54 else None
+    if not LAYOUTS[n_keys]:
+        sys.exit(f"{keymap}: no physical layout for {n_keys} keys")
+    use_layout(LAYOUTS[n_keys])
     # layer index names: #define BASE 0 ... -> NAME -> display-name
-    by_index = {v: k for k, v in defines.items() if k in ("BASE", "NUM", "NAV", "SYS")}
+    by_index = {v: k for k, v in defines.items() if k in LAYER_TAGS}
     layer_names = {by_index[i]: layers[i][0] for i in range(len(layers))}
     base = layers[0][1]
 
@@ -457,8 +555,9 @@ def main():
     cv = Canvas(ctx)
 
     # header: title at the left, colour key in the top-right corner
-    cv.text(PAD, 78, "Corne 3×5", 46, INK, True, align="left")
-    cv.text(PAD, 112, "Layers of config/corne.keymap · 36 keys, tap and hold", 20, MUTED, False, align="left")
+    cv.text(PAD, 78, title, 46, INK, True, align="left")
+    rel = os.path.relpath(keymap, REPO)
+    cv.text(PAD, 112, f"Layers of {rel} · {n_keys} keys, tap and hold", 20, MUTED, False, align="left")
     kinds = []
     for _, bs in layers:
         for b in bs:
@@ -479,6 +578,17 @@ def main():
     os.makedirs(os.path.dirname(out), exist_ok=True)
     surf.write_to_png(out)
     print(f"wrote {out} ({width * SCALE}x{height * SCALE})")
+
+
+def main():
+    if len(sys.argv) > 1:
+        keymap = sys.argv[1]
+        name = os.path.splitext(os.path.basename(keymap))[0]
+        title, out = KEYBOARDS.get(name, (name, os.path.splitext(keymap)[0] + ".png"))
+        draw(keymap, title, sys.argv[2] if len(sys.argv) > 2 else out)
+    else:
+        for name, (title, out) in KEYBOARDS.items():
+            draw(os.path.join(CONFIG, name + ".keymap"), title, out)
 
 
 if __name__ == "__main__":
